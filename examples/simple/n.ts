@@ -1,8 +1,8 @@
-import * as ell from "../src/ell"
+import * as ell from "@/ell"
 
 ell.init({})
 
-const hello = ell.simple({ model: 'gpt-4o-mini' }, async (name: string) => {
+const hello = ell.simple({ model: 'gpt-4o-mini', n: 2 }, async (name: string) => {
   return [
     ell.system('You are a helpful assistant'),
     ell.user(`Say hello to ${name}`)
