@@ -1,7 +1,7 @@
 import { Provider } from "../provider";
 import { registerProvider } from "../configurator"
 import OpenAI from 'openai'
-import { Message } from "@/types";
+import { ContentBlock, Message } from "@/types";
 
 class _OpenAIProvider implements Provider {
   // TODO
@@ -10,15 +10,20 @@ class _OpenAIProvider implements Provider {
     return OpenAI
   }
 
-  contentBlockToOpenAIFormat(contentBlock) {
-    // TODO
-    return contentBlock
+  contentBlockToOpenAIFormat(contentBlock:ContentBlock) {
+    if (contentBlock.text) {
+      return {
+        type: 'text',
+        text: contentBlock.text
+      }
+    }
+    return null
   }
 
   messageToOpenAIFormat(message: Message) {
     const openaiMessage = {
       role: message.role,
-      content: message.content // TODO
+      content: message.content.map(c => OpenAIProvider.contentBlockToOpenAIFormat(c))
     }
 
     return openaiMessage
@@ -45,7 +50,6 @@ class _OpenAIProvider implements Provider {
   async processResponse(callResult) {
     const apiParams = callResult.finalCallParams
     const response = callResult.response
-    console.log(response);
 
     const trackedResults: Array<Message> = []
     let metadata = {}

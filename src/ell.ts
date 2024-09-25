@@ -13,13 +13,7 @@ const getModelClient = (args) => {
 }
 
 function convertMultimodalResponseToString(response): string | Array<string> {
-  console.log(JSON.stringify(response, null, 2));
-
-  return Array.isArray(response) ?
-    response.length === 1 ?
-      response[0].content :
-      response.map(r => r.content) :
-    response.content
+  return Array.isArray(response) ? response.map((x) => x.content[0].text) : response.content[0].text
 }
 
 type SimpleLMPInner = (...args: any[]) => Promise<string | Array<Message>>
@@ -46,7 +40,7 @@ export const simple = <PromptFnc extends SimpleLMPInner>(options: Record<string,
     const callResult = await provider.callModel(modelClient, options.model, messages, apiParams)
     // parse model response and return i
     const [trackedResults, metadata] = await provider.processResponse(callResult)
-    const result = convertMultimodalResponseToString(trackedResults)
+    const result = convertMultimodalResponseToString(trackedResults[0])
     return result
   }
   return wrapper
