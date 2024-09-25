@@ -1,0 +1,23 @@
+{
+  "name": "ell-typescript-clone",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "bun-types": "latest",
+    "vitest": "^2.1.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "dependencies": {
+    "openai": "^4.63.0"
+  }
+}
