@@ -1,3 +1,5 @@
+class BaseModel { }
+
 type Image = any
 
 export class ContentBlock {
@@ -6,7 +8,7 @@ export class ContentBlock {
   // image_detail?: string
   // audio?: number[] | Float32Array
   // tool_call?: ToolCall
-  // parsed?: BaseModel
+  parsed?: BaseModel
   // tool_result?: ToolResult
 
   constructor(data) {
@@ -15,12 +17,14 @@ export class ContentBlock {
 
   get type() {
     if (this.text !== undefined) return 'text'
+    if (this.parsed !== undefined) return 'parsed'
     return null
   }
 
-  static coerce(content):ContentBlock {
+  static coerce(content): ContentBlock {
     if (content instanceof ContentBlock) return content
-    if (typeof content === 'string') return new ContentBlock({text:content})
+    if (typeof content === 'string') return new ContentBlock({ text: content })
+    if (content instanceof BaseModel) return new ContentBlock({ parsed: content })
     throw new Error(`Invalid content type: ${typeof content}`)
   }
 }
@@ -34,7 +38,7 @@ function coerceContentList(
   }
 
   if (!Array.isArray(content)) {
-    content =[content]
+    content = [content]
   }
 
   return content.map(c => ContentBlock.coerce(c))
@@ -50,6 +54,11 @@ export class Message {
 
   get text() {
     return this.content.map(c => c.text || `<${c.type}>`).join('\n')
+  }
+
+  get parsed(): BaseModel | BaseModel[] {
+    const parsedContent = this.content.filter(c => c.parsed).map(c => c.parsed as BaseModel)
+    return parsedContent.length === 1 ? parsedContent[0] : parsedContent
   }
 }
 

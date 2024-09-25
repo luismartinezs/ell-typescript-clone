@@ -2,6 +2,7 @@ import { Provider } from "../provider";
 import { registerProvider } from "../configurator"
 import OpenAI from 'openai'
 import { ContentBlock, Message } from "@/types";
+import { zodResponseFormat } from "openai/helpers/zod.mjs";
 
 class _OpenAIProvider implements Provider {
   // TODO
@@ -10,7 +11,7 @@ class _OpenAIProvider implements Provider {
     return OpenAI
   }
 
-  contentBlockToOpenAIFormat(contentBlock:ContentBlock) {
+  contentBlockToOpenAIFormat(contentBlock: ContentBlock) {
     if (contentBlock.text) {
       return {
         type: 'text',
@@ -29,8 +30,8 @@ class _OpenAIProvider implements Provider {
     return openaiMessage
   }
 
-  async callModel(client:OpenAI, model, messages:Array<Message>, apiParams) {
-    const finalCallParams = {...apiParams}
+  async callModel(client: OpenAI, model, messages: Array<Message>, apiParams, responseFormat) {
+    const finalCallParams = { ...apiParams }
     const openaiMessages = messages.map(message => OpenAIProvider.messageToOpenAIFormat(message))
     const actualN = apiParams || 1
     finalCallParams.model = model
@@ -38,7 +39,16 @@ class _OpenAIProvider implements Provider {
 
     let response
 
-    response = await client.chat.completions.create(finalCallParams)
+    if (finalCallParams.responseFormat) {
+      // TODO check that responseFormat is a valid zod schema (it could be another schema definition)
+      // TODO the model used is constrained when using zod schema, to gpt-4o-mini and gpt-4o https://platform.openai.com/docs/guides/structured-outputs/supported-models
+      finalCallParams.response_format = zodResponseFormat(finalCallParams.responseFormat, "response")
+      delete finalCallParams.responseFormat
+
+      response = await client.beta.chat.completions.parse(finalCallParams)
+    } else {
+      response = await client.chat.completions.create(finalCallParams)
+    }
 
     return {
       response,
@@ -56,7 +66,17 @@ class _OpenAIProvider implements Provider {
 
     // TODO handle streaming
     for (const choice of response.choices) {
-      trackedResults.push(new Message(choice.message.role, choice.message.content))
+      const content = []
+      if (choice.refusal) {
+        throw new Error(choice.refusal)
+      }
+      if (apiParams.response_format) {
+        content.push(new ContentBlock({ parsed: choice.message.parsed }))
+      } else if (choice.message.content) {
+        content.push(new ContentBlock({ text: choice.message.content }))
+      }
+
+      trackedResults.push(new Message(choice.message.role, content))
     }
 
     return [trackedResults, metadata]
