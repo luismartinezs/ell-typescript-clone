@@ -71,9 +71,13 @@ export const complex = <PromptFnc extends SimpleLMPInner>(options: Record<string
     // model api params from args
     const apiParams = { ...options }
     // call model
-    const callResult = await provider.callModel(modelClient, options.model, messages, apiParams)
+    const callResult = await provider.callModel(modelClient, options.model, messages, apiParams, options.tools)
+    // console.log(JSON.stringify(callResult, null, 2));
+
     // parse model response and return i
-    const [trackedResults, metadata] = await provider.processResponse(callResult)
+    const [trackedResults, metadata] = await provider.processResponse(callResult, options.tools)
+    // console.log(JSON.stringify(trackedResults, null, 2));
+
     return trackedResults.length === 1 ? trackedResults[0] : trackedResults
   }
   return wrapper

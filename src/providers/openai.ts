@@ -1,8 +1,8 @@
 import { Provider } from "../provider";
 import { registerProvider } from "../configurator"
 import OpenAI from 'openai'
-import { ContentBlock, Message } from "@/types";
-import { zodResponseFormat } from "openai/helpers/zod.mjs";
+import { ContentBlock, Message, ToolCall } from "@/types";
+import { zodFunction, zodResponseFormat } from "openai/helpers/zod.mjs";
 
 class _OpenAIProvider implements Provider {
   // TODO
@@ -30,10 +30,10 @@ class _OpenAIProvider implements Provider {
     return openaiMessage
   }
 
-  async callModel(client: OpenAI, model, messages: Array<Message>, apiParams, responseFormat) {
+  async callModel(client: OpenAI, model, messages: Array<Message>, apiParams, tools) {
     const finalCallParams = { ...apiParams }
     const openaiMessages = messages.map(message => OpenAIProvider.messageToOpenAIFormat(message))
-    const actualN = apiParams || 1
+    const actualN = apiParams.n || 1
     finalCallParams.model = model
     finalCallParams.messages = openaiMessages
 
@@ -47,6 +47,18 @@ class _OpenAIProvider implements Provider {
 
       response = await client.beta.chat.completions.parse(finalCallParams)
     } else {
+      if (tools) {
+        finalCallParams.tool_choice = 'auto'
+        finalCallParams.tools = tools.map(tool => {
+          // TODO this assumes that the tool is provided as a zod schema
+          const toolDefinition = zodFunction({
+            name: tool.__ell_tool_name__,
+            parameters: tool.__ell_tool_input__,
+            description: tool.__ell_tool_description__,
+          })
+          return toolDefinition
+        })
+      }
       response = await client.chat.completions.create(finalCallParams)
     }
 
@@ -57,7 +69,7 @@ class _OpenAIProvider implements Provider {
     }
   }
 
-  async processResponse(callResult) {
+  async processResponse(callResult, tools) {
     const apiParams = callResult.finalCallParams
     const response = callResult.response
 
@@ -65,18 +77,41 @@ class _OpenAIProvider implements Provider {
     let metadata = {}
 
     // TODO handle streaming
-    for (const choice of response.choices) {
+    for (const { message: choice } of response.choices) {
       const content = []
       if (choice.refusal) {
         throw new Error(choice.refusal)
       }
       if (apiParams.response_format) {
-        content.push(new ContentBlock({ parsed: choice.message.parsed }))
-      } else if (choice.message.content) {
-        content.push(new ContentBlock({ text: choice.message.content }))
+        content.push(new ContentBlock({ parsed: choice.parsed }))
+      } else if (choice.content) {
+        content.push(new ContentBlock({ text: choice.content }))
       }
 
-      trackedResults.push(new Message(choice.message.role, content))
+      if (choice.tool_calls?.length) {
+        if (!tools?.length) {
+          throw new Error('Tools not provided, yet tool calls in response. Did you manually specify a tool spec without using ell.tool?')
+        }
+
+        for (const toolCall of choice.tool_calls) {
+          const matchingTool = tools.find(tool => tool.__ell_tool_name__ === toolCall.function.name)
+          if (matchingTool) {
+            const params = JSON.parse(toolCall.function.arguments)
+            content.push(
+              new ContentBlock({
+                tool_call: new ToolCall(
+                  matchingTool,
+                  toolCall.id,
+                  params
+                )
+              }
+              )
+            )
+          }
+        }
+      }
+
+      trackedResults.push(new Message(choice.role, content))
     }
 
     return [trackedResults, metadata]
