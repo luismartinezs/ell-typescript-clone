@@ -18,6 +18,14 @@ class _OpenAIProvider implements Provider {
         text: contentBlock.text
       }
     }
+    if (contentBlock.image) {
+      return {
+        type: 'image_url',
+        image_url: {
+          url: `data:image/jpeg;base64,${contentBlock.image.toString('base64')}`
+        }
+      }
+    }
     return null
   }
 

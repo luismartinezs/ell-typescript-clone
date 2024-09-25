@@ -7,6 +7,9 @@ export function register(client) {
   const modelData = [
     {
       modelId: 'gpt-4o-mini'
+    },
+    {
+      modelId: 'gpt-4-vision-preview'
     }
   ]
 

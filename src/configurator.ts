@@ -35,8 +35,10 @@ class Config {
   }
 }
 
-export function init() {
-
+export function init(options) {
+  if (options.store) {
+    config.setStore(options.store, options.autocommit)
+  }
 }
 
 export const config = new Config()

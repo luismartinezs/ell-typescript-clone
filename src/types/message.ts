@@ -1,4 +1,6 @@
-type Image = any
+// allow images as Buffer only, good enough for now
+type Image = Buffer
+
 class BaseModel { }
 
 class ToolResult {
@@ -36,7 +38,7 @@ export class ToolCall {
 
 export class ContentBlock {
   text?: string
-  // image?: Image|string
+  image?: Image | string
   // image_detail?: string
   // audio?: number[] | Float32Array
   tool_call?: ToolCall
@@ -52,15 +54,17 @@ export class ContentBlock {
     if (this.parsed !== undefined) return 'parsed'
     if (this.tool_call !== undefined) return 'tool_call'
     if (this.tool_result !== undefined) return 'tool_result'
+    if (this.image !== undefined) return 'image'
     return null
   }
 
-  static coerce(content: string | BaseModel | ToolResult | ToolCall | ContentBlock): ContentBlock {
+  static coerce(content: string | BaseModel | ToolResult | ToolCall | ContentBlock | Buffer): ContentBlock {
     if (content instanceof ContentBlock) return content
     if (typeof content === 'string') return new ContentBlock({ text: content })
     if (content instanceof BaseModel) return new ContentBlock({ parsed: content })
     if (content instanceof ToolResult) return new ContentBlock({ tool_result: content })
     if (content instanceof ToolCall) return new ContentBlock({ tool_call: content })
+    if (content instanceof Buffer) return new ContentBlock({ image: content })
     throw new Error(`Invalid content type: ${typeof content}`)
   }
 }
@@ -110,6 +114,11 @@ export class Message {
   get toolResults(): ToolResult[] | undefined {
     const toolResults = this.content.filter((c) => c.tool_result).map((c) => c.tool_result as ToolResult)
     return toolResults.length ? toolResults : undefined
+  }
+
+  get images(): Image[] | undefined {
+    const images = this.content.filter((c) => c.image).map((c) => c.image as Image)
+    return images.length ? images : undefined
   }
 
   async callToolsAndCollectAsMessage(parallel: boolean = false, maxWorkers?: number) {
