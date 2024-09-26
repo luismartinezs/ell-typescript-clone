@@ -1,5 +1,3 @@
-import { logger } from "./logger"
-
 export type TContentBlock = {
   type: string | null
   text?: string
@@ -28,8 +26,8 @@ ContentBlock.is = (obj: any): obj is TContentBlock =>
 
 // "static" method
 ContentBlock.coerce = (content: string | TContentBlock) => {
-  logger.log('ContentBlock.coerce')
-  logger.log(content)
+  // logger.log('ContentBlock.coerce')
+  // logger.log(content)
   if (ContentBlock.is(content)) return content
   if (typeof content === 'string') return ContentBlock({ text: content })
   throw new Error(`Invalid content type: ${typeof content}`)
@@ -45,8 +43,8 @@ function coerceContentList(content?: string | TContentBlock[] | string[], conten
   } else {
     _content = content
   }
-  logger.log('coerceContentList')
-  logger.log(_content)
+  // logger.log('coerceContentList')
+  // logger.log(_content)
   return _content?.map((c) => ContentBlock.coerce(c))
 }
 

@@ -39,14 +39,28 @@ function buildMessages(lmpoutput: string | any[]) {
 }
 
 function convertMultimodalResponseToString(response: TMessage | TMessage[]): string | string[] {
-  logger.json(response)
+  // logger.json(response)
   if (Array.isArray(response)) {
     if (response.length === 1) {
-      return response[0].content[0].text
+      const content = response[0].content[0].text
+      if (!content) {
+        throw new Error('Content is undefined')
+      }
+      return content
     }
-    return response.map((x) => x.content[0].text)
+    return response.map((x) => {
+      const content = x.content[0].text
+      if (!content) {
+        throw new Error('Content is undefined')
+      }
+      return content
+    })
   }
-  return response.content[0].text
+  const content = response.content[0].text
+  if (!content) {
+    throw new Error('Content is undefined')
+  }
+  return content
 }
 
 export const simple = (options: Options, lmpfn: LMPFn) => {

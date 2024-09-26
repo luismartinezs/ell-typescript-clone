@@ -53,13 +53,13 @@ function OpenAIProvider() {
   }
 
   async function processResponse(callResult: APICallResult) {
-    logger.json(callResult)
+    // logger.json(callResult)
     const messages: TMessage[] = []
     const response = Array.isArray(callResult) ? callResult[0].response : callResult.response
 
     for (const choice of response.choices) {
       const {message} = choice
-      logger.json(message)
+      // logger.json(message)
       const content = []
       if (message.refusal) {
         throw new Error(message.refusal)

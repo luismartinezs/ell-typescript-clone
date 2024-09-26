@@ -2,7 +2,7 @@ import { logger } from "./logger"
 import OpenAI from 'openai'
 import { singletonDecorator } from "./utils"
 import { openAIProvider } from "./providers/openai";
-import { registerOpenaiAsDefaultClient } from "./models/openai";
+import { register } from "./models/openai";
 
 function createConfig() {
   const _registry = new Map()
@@ -33,11 +33,24 @@ function createConfig() {
     providers.set(providerClass.getClientType(), providerClass)
   }
 
-  function getProviderFor(client:any) {
+  function getProviderFor(client: any) {
     for (const [key, value] of providers.entries()) {
       if (client instanceof key) {
         return value
       }
+    }
+  }
+
+  function registerDefaultClient(APIClient: any, registerFnc: (client: any) => void) {
+    let defaultClient = null
+    try {
+      defaultClient = new APIClient()
+    } catch (e) {
+      logger.error('Failed to create default OpenAI client:', e.message)
+    }
+
+    if (defaultClient) {
+      registerFnc(defaultClient)
     }
   }
 
@@ -46,16 +59,16 @@ function createConfig() {
     registerModel,
     getProviderFor,
     registerProvider,
+    registerDefaultClient,
     defaultClient,
+    defaultModel,
     defaultSystemPrompt
   }
 }
 
 export const config = singletonDecorator(createConfig).getInstance()
 config.registerProvider(openAIProvider)
-
-registerOpenaiAsDefaultClient()
-
+config.registerDefaultClient(OpenAI, register)
 
 export const init = (options: any) => {
 
