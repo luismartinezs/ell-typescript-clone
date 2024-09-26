@@ -4,6 +4,8 @@ import './models/openai'
 import { config } from './configurator'
 import { Message } from './types'
 
+import { user, system, assistant } from './types'
+
 const getModelClient = (args) => {
   if (args.client) {
     return args.client
@@ -39,7 +41,10 @@ export const simple = <PromptFnc extends SimpleLMPInner>(options: Record<string,
       throw new Error(`No provider found for model ${options.model} ${modelClient}`)
     }
     // get messages from args
-    const messages = typeof lmpfnOutput === 'string' ? [new Message('user', lmpfnOutput)] : lmpfnOutput
+    const messages = typeof lmpfnOutput === 'string' ? [
+      system(config.defaultSystemPrompt),
+      user(lmpfnOutput)
+    ] : lmpfnOutput
     // model api params from args
     const apiParams = { ...options }
     // call model
@@ -85,4 +90,4 @@ export const complex = <PromptFnc extends SimpleLMPInner>(options: Record<string
 
 
 export { init } from './configurator'
-export { user, system, assistant } from './types'
+export { user, system, assistant }

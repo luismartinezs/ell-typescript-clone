@@ -21,7 +21,9 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@f/*": ["src-functional/*"],
+      "@e/*": ["examples/*"]
     }
   }
 }
